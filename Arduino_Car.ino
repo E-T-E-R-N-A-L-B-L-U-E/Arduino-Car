@@ -113,7 +113,6 @@ void loop() {
   elevator_runtime = 0;
   elevator_speed = 0;
   turn_mode = false;
-//  Serial.println(joystick.Analog(PSS_LX));
 
   execuateRunCommand( joystick, speed_left, speed_right );
   execuateTurnCommand( joystick, speed_left, speed_right, turn_mode );
@@ -121,10 +120,6 @@ void loop() {
   execuateElevatorMove( joystick, elevator_direction, elevator_speed, elevator_runtime );
 
   setCarSpeed( motor_left, motor_right, speed_left, speed_right );
-//  runElevator( elevator_left, elevator_right, elevator_direction, elevator_speed, elevator_runtime );
-//  Serial.print( speed_left );
-//  Serial.print(" " );
-//  Serial.println( speed_right );
 
   delay( 20 );
 }
@@ -167,7 +162,8 @@ void execuateRunCommand( PS2X &joystick, int &speed_left, int &speed_right ){
   const int X_TRESHOLD = 20;
   const double max_func = pow( 2.718, 4.0 );
   int y_value = -( joystick.Analog( PSS_LY ) - 127 );
-  if ( abs( y_value ) < Y_TRESHOLD )
+  int x_value = joystick.Analog( PSS_LX );
+  if ( abs( y_value ) + abs( x_value - 127 ) < Y_TRESHOLD )
     return;
   if ( y_value < 0 ){
     speed_left = speed_right = -c_speed_backward_normal;
@@ -176,7 +172,6 @@ void execuateRunCommand( PS2X &joystick, int &speed_left, int &speed_right ){
       speed_left = speed_right = c_speed_forward_normal;
     }
 // calculate y value
-  int x_value = joystick.Analog( PSS_LX );
   x_value = ( x_value <= 127 ) ? x_value - 128 : x_value - 127;
   if ( abs( x_value ) < X_TRESHOLD )
     return;
@@ -216,14 +211,10 @@ void execuateSlowMode( PS2X &joystick, int &speed_left, int &speed_right, bool t
 void execuateElevatorMove( PS2X &joystick, int &direct, int &elevator_speed, int &runtime ){
   if ( joystick.Button( PSB_BLUE ) && joystick.NewButtonState( PSB_BLUE ) ){
     direct = 1;
-//    runtime = c_elevator_runtime_high;
-//    elevator_speed = c_elevator_speed_normal;
     elevator_controller.toStandardPosition( elevator_controller.getStandardPosition() + 1 );
   } else {
     if (joystick.Button( PSB_GREEN ) && joystick.NewButtonState( PSB_GREEN ) ){
       direct = -1;
-//      runtime = c_elevator_runtime_high;
-//      elevator_speed = c_elevator_speed_normal;
       elevator_controller.toStandardPosition( elevator_controller.getStandardPosition() - 1 );
     }
   }
@@ -246,28 +237,3 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
     motor_right->setSpeed( -speed_right );
   }
 }
-
-//void runElevator( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &direct, const int &elevator_speed, const int &runtime ){
-//  if ( elevator_speed == 0 )
-//    return;
-//  if ( direct > 0 ) {
-//    elevator_left->run( FORWARD );
-//    elevator_left->setSpeed( elevator_speed );
-//    elevator_right->run( FORWARD );
-//    elevator_right->setSpeed( elevator_speed );
-//  } else {
-//    if( direct < 0 ) {
-//      elevator_left->run( BACKWARD );
-//      elevator_left->setSpeed( elevator_speed );
-//      elevator_right->run( BACKWARD );
-//      elevator_right->setSpeed( elevator_speed );
-//    } else {
-//      return;
-//    }
-//  }
-//  delay( runtime );
-//  elevator_left->run( RELEASE );
-////  elevator_left->setSpeed( 0 );
-//  elevator_right->run( RELEASE );
-////  elevator_right->setSpeed( 0 );
-//}
