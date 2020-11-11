@@ -138,14 +138,14 @@ void ElevatorController::run( const int &runtime, const int &direct, const int s
       }
 		}
 	}
-	elevator_left->setSpeed( 0 );
+//	elevator_left->setSpeed( 0 );
 	elevator_right->setSpeed(  0 );
 	elevator_left->run( BRAKE );
 	elevator_right->run( BRAKE );
 }
 
 bool ElevatorController::atStandardPosition() {
-	for ( int i = 0; i < 3; i ++ )
+	for ( int i = 0; i < position_cnt; i ++ )
 		if ( standard_position[ i ] == current_position ) 
 			return true;
 	return false;
@@ -154,7 +154,7 @@ bool ElevatorController::atStandardPosition() {
 int ElevatorController::getStandardPosition() {
 	if ( !atStandardPosition() )
 		return -1;
-	for ( int i = 0; i < 3; i ++ )
+	for ( int i = 0; i < position_cnt; i ++ )
 		if ( standard_position[ i ] == current_position )
 			return i;
 	return 0;

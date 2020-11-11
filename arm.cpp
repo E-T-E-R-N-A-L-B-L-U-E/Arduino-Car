@@ -22,7 +22,6 @@ void Arm::setServo( Adafruit_Servo *arm, Adafruit_Servo *breaker ){
 }
 
 void Arm::reset(){
-  Serial.println( "1" );
 	(_arm_servo)->writeServo( _mods[ 0 ] );
 	(_breaker_servo)->writeServo( _breaker_wait_degree );
 	_current_mode = 0;
@@ -33,20 +32,16 @@ void Arm::toMode( int mode ) {
 	       return;	
 	if ( mode == _current_mode ) {
 		return ;
-	}
-  Serial.println("2");
-	(_arm_servo)->writeServo( _mods[ 1 ] );
-//  Serial.println("do");
+	} 
+	(_arm_servo)->writeServo( _mods[ mode ] );
 	_current_mode = mode;
-// Serial.println(_current_mode);
 }
 
 void Arm::breakIt(){
-  Serial.println( "3" );
   _breaker_servo->writeServo( _breaker_start_degree );
-  delay( 500 );
+  delay( 800 );
 	(_breaker_servo)->writeServo( _breaker_end_degree );
-	delay( 500 );
+	delay( 800 );
 	(_breaker_servo)->writeServo( _breaker_wait_degree );
 }
 

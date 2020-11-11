@@ -6,21 +6,22 @@
 #include "Adafruit_MotorShield.h"
 
 class ElevatorController {
-	const int upward_speed = 350;    // time needed to run upward 5 centimeter
+	const int upward_speed = 245;    // time needed to run upward 5 centimeter
 //	const int downward_speed = 144;    // time needed to run downward 5 centimeter
-	const int elevator_speed_normal = 150;
-	const double to_down_rate = 0.855;
+	const int elevator_speed_normal = 100;
+	const double to_down_rate = 0.78;
   const double to_stop_rate = 0.1;
   const int downward_speed = round( to_down_rate * upward_speed );    // time needed to run downward 5 centimeter
   const int stop_speed = round( to_stop_rate * upward_speed );
 
-	const int position_max = 2 * upward_speed + 100;
 	const int position_min = 0;
-	const int position_cnt = 3;
-	const int standard_position[ 3 ] = {
+	const int position_cnt = 4;
+  const int position_max = ( position_cnt - 1 ) * upward_speed + 100;
+	const int standard_position[ 4 ] = {
 		0,
 		1 * upward_speed,
-		2 * upward_speed
+		2 * upward_speed,
+    3 * upward_speed
 	};
 	int current_position;
 	bool onMoving;
