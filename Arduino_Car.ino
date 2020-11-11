@@ -5,7 +5,6 @@
 #include "elevatorcontroller.h"
 #include "arm.h"
 
-//#define __DEBUG_ARM__
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motor_left = AFMS.getMotor( 4 );
@@ -15,14 +14,9 @@ Adafruit_DCMotor *elevator_right = AFMS.getMotor( 1 );
 PS2X joystick;
 ElevatorController elevator_controller( elevator_left, elevator_right );
 
-#ifndef __DEBUG_ARM__
 Adafruit_Servo *servo1 = AFMS.getServo( 7 );
 Adafruit_Servo *servo2 = AFMS.getServo( 6 );
 Arm arm = Arm( servo1, servo2 );
-#else
-Adafruit_Servo *_arm_servo = AFMS.getServo( 7 );
-Adafruit_Servo *_breaker_servo = AFMS.getServo( 6 );
-#endif
 
 const int c_speed_backward_normal = 255;
 // the normal speed moving backward, it should be lower than the forward speed
@@ -98,21 +92,6 @@ void runElevator( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_ri
 void execuateChangeArmMode( PS2X &joystick, Arm &arm );
 void execuateBreak( PS2X &joystick, Arm &arm );
 
-#ifdef __DEBUG_ARM__
-  int _arm_degree, _breaker_degree;
-  int _current_mode;
-  int _mods_cnt = 2;
-  int _mods[ 2 ] = { 60, 90 };
-  int _breaker_start_degree = 0;
-  int _breaker_end_degree = 120;
-
-  void _arm_reset();
-  void _arm_toMode( int mod );
-  void _arm_breakIt();
-  int _arm_getMode();
-#endif
-
-
 
 
 
@@ -120,19 +99,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin( 9600 );
   AFMS.begin(50);
-#ifndef __DEBUG_ARM__
   arm.reset();
-#endif
-//  Serial.println("in");
-//  Adafruit_Servo *servo1 = AFMS.getServo( 7 );
-//  Adafruit_Servo *servo2 = AFMS.getServo( 6 );
-//  Arm myarm( servo1, servo2 );
-//  servo1 = AFMS.getServo( 7 );
-//  servo2 = AFMS.getServo( 6 );
-//  servo1->writeServo(20);
-//  arm = Arm( servo1, servo2 );
-//  arm.setServo( &servo1, &servo2 );
-//  myarm.reset();
   setupJoystick( joystick );
   speed_left = speed_right = 0;
   turn_mode = false;
@@ -144,9 +111,7 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   joystick.read_gamepad( false, 0 );
-//  Serial.println( servo1->readDegrees());
   speed_left = speed_right = 0;
   elevator_runtime = 0;
   elevator_speed = 0;
@@ -156,14 +121,8 @@ void loop() {
   execuateTurnCommand( joystick, speed_left, speed_right, turn_mode );
   execuateSlowMode( joystick, speed_left, speed_right, turn_mode );
   execuateElevatorMove( joystick, elevator_direction, elevator_speed, elevator_runtime );
-#ifndef __DEBUG_ARM__
   execuateChangeArmMode( joystick, arm );
   execuateBreak( joystick, arm );
-
-#else
-  execuateChangeArmMode( joystick );
-  execuateBreak( joystick );
-#endif
 
   setCarSpeed( motor_left, motor_right, speed_left, speed_right );
   delay( 20 );
@@ -208,7 +167,6 @@ void execuateRunCommand( PS2X &joystick, int &speed_left, int &speed_right ){
   const double max_func = pow( 2.718, 4.0 );
   int y_value = -( joystick.Analog( PSS_LY ) - 127 );
   int x_value = joystick.Analog( PSS_LX );
-//  Serial.print( y_value ); Serial.print( " " ); Serial.println( 127 - x_value );
   if ( abs( y_value ) + abs( x_value - 127 ) < Y_TRESHOLD )
     return;
   if ( y_value < 0 ){
@@ -266,15 +224,9 @@ void execuateElevatorMove( PS2X &joystick, int &direct, int &elevator_speed, int
   }
 }
 
-#ifndef __DEBUG_ARM__
 void execuateChangeArmMode( PS2X &joystick, Arm &arm ) {
   if ( joystick.Button( PSB_PINK ) && joystick.NewButtonState( PSB_PINK ) ){
-//    Serial.println("in1");
     arm.toMode( !arm.getMode() );
-//static int i = 80;
-//    servo1->writeServo( i + 90 );
-//    i=(i+80)%160;
-//    Serial.println("in2");
   }
 }
 
@@ -283,26 +235,6 @@ void execuateBreak( PS2X &joystick, Arm &arm ) {
     arm.breakIt();
   }
 }
-
-#else
-void execuateChangeArmMode( PS2X &joystick ) {
-  if ( joystick.Button( PSB_PINK ) && joystick.NewButtonState( PSB_PINK ) ){
-//    Serial.println("in1");
-//    arm.toMode( !arm.getMode() );
-//static int i = 80;
-//    servo1->writeServo( i + 90 );
-//    i=(i+80)%160;
-//    Serial.println("in2");
-    _arm_toMode( !_arm_getMode() );
-  }
-}
-
-void execuateBreak( PS2X &joystick ) {
-  if ( joystick.Button( PSB_RED ) && joystick.NewButtonState( PSB_RED ) ){
-    _arm_breakIt();
-  }
-}
-#endif
 
 void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, const int &speed_left, const int &speed_right ) {
   if( speed_left >= 0 ) {
@@ -320,32 +252,4 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
     motor_right->run( BACKWARD );
     motor_right->setSpeed( -speed_right );
   }
-//  if( speed_left == 0 && speed_right == 0 ) {
-//    motor_right->run( BRAKE );
-//    motor_left->run( BRAKE );
-//  }
 }
-
-#ifdef __DEBUG_ARM__
-  void _arm_reset(){
-    _arm_servo->writeServo( _mods[ 0 ] );
-    _breaker_servo->writeServo( _breaker_start_degree );
-    _current_mode = 0;
-  }
-  void _arm_toMode( int mode ) {
-    if ( mode > _mods_cnt || mode < 0 )
-      return;
-    if (mode == _current_mode ) 
-      return;
-    _arm_servo->writeServo( _mods[ mode ] );
-    _current_mode = mode; 
-  }
-  void _arm_breakIt(){
-    _breaker_servo->writeServo( _breaker_end_degree );
-    delay( 500 );
-    _breaker_servo->writeServo( _breaker_start_degree );
-  }
-  int _arm_getMode(){
-    return _current_mode;
-  }
-#endif
