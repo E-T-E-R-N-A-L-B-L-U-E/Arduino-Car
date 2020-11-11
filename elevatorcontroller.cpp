@@ -140,8 +140,8 @@ void ElevatorController::run( const int &runtime, const int &direct, const int s
 	}
 	elevator_left->setSpeed( 0 );
 	elevator_right->setSpeed(  0 );
-	elevator_left->run( RELEASE );
-	elevator_right->run( RELEASE );
+	elevator_left->run( BRAKE );
+	elevator_right->run( BRAKE );
 }
 
 bool ElevatorController::atStandardPosition() {
@@ -163,3 +163,7 @@ int ElevatorController::getStandardPosition() {
 int ElevatorController::getPosition() {
 	return current_position;
 } 
+
+void ElevatorController::reset() {
+  run( -position_max , -1 );
+}
