@@ -5,20 +5,15 @@
 #include "elevatorcontroller.h"
 #include "arm.h"
 
-#define __DEBUG_ARM__
+//#define __DEBUG_ARM__
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motor_left = AFMS.getMotor( 4 );
 Adafruit_DCMotor *motor_right = AFMS.getMotor( 3 );
 Adafruit_DCMotor *elevator_left = AFMS.getMotor( 2 );
 Adafruit_DCMotor *elevator_right = AFMS.getMotor( 1 );
-//extern Adafruit_Servo *servo1;
-//extern Adafruit_Servo *servo2;
-//Adafruit_Servo *servo1;
-//Adafruit_Servo *servo2;
 PS2X joystick;
 ElevatorController elevator_controller( elevator_left, elevator_right );
-//Arm &arm;
 
 #ifndef __DEBUG_ARM__
 Adafruit_Servo *servo1 = AFMS.getServo( 7 );
@@ -125,7 +120,10 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin( 9600 );
   AFMS.begin(50);
-  Serial.println("in");
+#ifndef __DEBUG_ARM__
+  arm.reset();
+#endif
+//  Serial.println("in");
 //  Adafruit_Servo *servo1 = AFMS.getServo( 7 );
 //  Adafruit_Servo *servo2 = AFMS.getServo( 6 );
 //  Arm myarm( servo1, servo2 );
@@ -330,7 +328,6 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
 
 #ifdef __DEBUG_ARM__
   void _arm_reset(){
-    Serial.println( "0" );
     _arm_servo->writeServo( _mods[ 0 ] );
     _breaker_servo->writeServo( _breaker_start_degree );
     _current_mode = 0;
@@ -342,10 +339,8 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
       return;
     _arm_servo->writeServo( _mods[ mode ] );
     _current_mode = mode; 
-    Serial.print( "1: " ); Serial.println( _mods[ mode ] );
   }
   void _arm_breakIt(){
-    Serial.println( "2" );
     _breaker_servo->writeServo( _breaker_end_degree );
     delay( 500 );
     _breaker_servo->writeServo( _breaker_start_degree );
