@@ -2,11 +2,12 @@
 #define __ELEVATORCONTROLLER_H__
 
 #include "Arduino.h"
+#include "arm.h"
 #include <Wire.h>
 #include "Adafruit_MotorShield.h"
 
 class ElevatorController {
-	const int upward_speed = 245;    // time needed to run upward 5 centimeter
+	const int upward_speed = 430;    // time needed to run upward 5 centimeter
 //	const int downward_speed = 144;    // time needed to run downward 5 centimeter
 	const int elevator_speed_normal = 100;
 	const double to_down_rate = 0.78;
@@ -21,18 +22,19 @@ class ElevatorController {
 		0,
 		1 * upward_speed,
 		2 * upward_speed,
-    3 * upward_speed
+    2 * upward_speed + 1
 	};
 	int current_position;
 	bool onMoving;
 	Adafruit_DCMotor *elevator_left, *elevator_right;
+  Arm *_arm;
 
 	void run( const int &runtime, const int &direct, const int stop_flag );
 
 
 public:
 	ElevatorController( );
-	ElevatorController( Adafruit_DCMotor *left, Adafruit_DCMotor *right );
+	ElevatorController( Adafruit_DCMotor *left, Adafruit_DCMotor *right, Arm *arm );
 
 
 	void toStandardPosition( int pos_id );

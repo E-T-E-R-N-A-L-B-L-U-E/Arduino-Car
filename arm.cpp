@@ -25,16 +25,34 @@ void Arm::reset(){
 	(_arm_servo)->writeServo( _mods[ 0 ] );
 	(_breaker_servo)->writeServo( _breaker_wait_degree );
 	_current_mode = 0;
+  _elevator_mode = 0;
 }
 
 void Arm::toMode( int mode ) {
+  Serial.println( "enter: toMode" );
+  Serial.print( "to: " ); Serial.println( mode );
 	if ( mode > _mods_cnt || mode < 0 )
 	       return;	
-	if ( mode == _current_mode ) {
-		return ;
-	} 
-	(_arm_servo)->writeServo( _mods[ mode ] );
+//	if ( mode == _current_mode && _current_mode == 0 ) {
+//		return ;
+//	} 
+  if( mode == 0 ) {
+    _arm_servo->writeServo( _mods[ mode ] );
+  }else {
+    _arm_servo->writeServo( _elevator_mode_degree[ _elevator_mode ] );
+//    _arm_servo->writeServo( 90 );
+  }
+//	(_arm_servo)->writeServo( _mods[ mode ] );
 	_current_mode = mode;
+ Serial.println( "exit: toMode" );
+}
+
+void Arm::setElevatorMode( int mode ) {
+  Serial.println( "enter: setElevatorMode" );
+  _elevator_mode = mode;
+  Serial.print( "current:" ); Serial.println( _elevator_mode );
+  toMode( _current_mode );
+  Serial.println( "exit: setElevatorMode" );
 }
 
 void Arm::breakIt(){

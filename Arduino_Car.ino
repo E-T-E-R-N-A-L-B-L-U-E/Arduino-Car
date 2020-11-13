@@ -12,24 +12,22 @@ Adafruit_DCMotor *motor_right = AFMS.getMotor( 3 );
 Adafruit_DCMotor *elevator_left = AFMS.getMotor( 2 );
 Adafruit_DCMotor *elevator_right = AFMS.getMotor( 1 );
 PS2X joystick;
-ElevatorController elevator_controller( elevator_left, elevator_right );
 
 Adafruit_Servo *servo1 = AFMS.getServo( 7 );
 Adafruit_Servo *servo2 = AFMS.getServo( 6 );
 Arm arm = Arm( servo1, servo2 );
+ElevatorController elevator_controller( elevator_left, elevator_right, &arm );
 
 const int c_speed_backward_normal = 255;
 // the normal speed moving backward, it should be lower than the forward speed
 const int c_speed_forward_normal = 255;
-const int c_elevator_speed_normal = 150;
+const int c_elevator_speed_up = 100;
+const int c_elevator_speed_down = 90;
 // the normal speed moving forward
 const int c_speed_turn = 200;
 // the speed when the car turn left of turn right
 const double c_speed_slow_rate = 0.5;
 const double c_speed_slow_turn_rate = 0.6;
-const int c_elevator_runtime_high = 700;
-const int c_elevator_runtime_mid = 300;
-const int c_elevator_runtime_low = 0;
 // the rate when the low speed command is given
 
 
@@ -83,7 +81,7 @@ void execuateTurnCommand( PS2X &joystick, int &speed_left, int &speed_right, boo
  * rate B = c_speed_slow_rate ( 0.3 )
  */
 void execuateSlowMode( PS2X &joystick, int &speed_left, int &speed_right, bool turn_mode );
-void execuateElevatorMove( PS2X &joystick, int &direct, int &elevator_speed, int &runtime );
+void execuateElevatorMove( PS2X &joystick, int &direct );
 /*
  * used of change the speed of the car physically
  */
@@ -91,6 +89,9 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
 void runElevator( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &direct, const int &elevator_speed, const int &runtime );
 void execuateChangeArmMode( PS2X &joystick, Arm &arm );
 void execuateBreak( PS2X &joystick, Arm &arm );
+void execuateReset( PS2X &joystick );
+void execuateAdjustElevator( PS2X &joystick, int &elevator_speed );
+void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &elevator_speed );
 
 
 
@@ -117,14 +118,19 @@ void loop() {
   elevator_speed = 0;
   turn_mode = false;
 
+  execuateReset( joystick );
+
   execuateRunCommand( joystick, speed_left, speed_right );
   execuateTurnCommand( joystick, speed_left, speed_right, turn_mode );
   execuateSlowMode( joystick, speed_left, speed_right, turn_mode );
-  execuateElevatorMove( joystick, elevator_direction, elevator_speed, elevator_runtime );
+  execuateElevatorMove( joystick, elevator_direction );
   execuateChangeArmMode( joystick, arm );
   execuateBreak( joystick, arm );
+  execuateAdjustElevator( joystick, elevator_speed );
 
   setCarSpeed( motor_left, motor_right, speed_left, speed_right );
+  setElevatorSpeed( elevator_left, elevator_right, elevator_speed );
+//  Serial.println(arm.getMode());
   delay( 20 );
 }
 
@@ -188,6 +194,9 @@ void execuateRunCommand( PS2X &joystick, int &speed_left, int &speed_right ){
 }
 
 void execuateTurnCommand( PS2X &joystick, int &speed_left, int &speed_right, bool &turn_mode ){
+  if( joystick.ButtonPressed( PSB_R2 ) ){
+     return;
+  }
   const int TRESHOLD = 50;
   int x_value = ( joystick.Analog( PSS_RX ) - 127 );
   if ( abs( x_value ) < TRESHOLD )
@@ -212,7 +221,7 @@ void execuateSlowMode( PS2X &joystick, int &speed_left, int &speed_right, bool t
     }
 }
 
-void execuateElevatorMove( PS2X &joystick, int &direct, int &elevator_speed, int &runtime ){
+void execuateElevatorMove( PS2X &joystick, int &direct ){
   if ( joystick.Button( PSB_BLUE ) && joystick.NewButtonState( PSB_BLUE ) ){
     direct = 1;
     elevator_controller.toStandardPosition( elevator_controller.getStandardPosition() + 1 );
@@ -251,5 +260,39 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
   } else {
     motor_right->run( BACKWARD );
     motor_right->setSpeed( -speed_right );
+  }
+}
+void execuateReset( PS2X &joystick ){
+  if( joystick.ButtonPressed( PSB_L1 ) && joystick.ButtonPressed( PSB_L2 ) && joystick.ButtonPressed( PSB_R1 ) && joystick.ButtonPressed( PSB_R2 ) ) {
+    setup();
+  }
+}
+
+void execuateAdjustElevator( PS2X &joystick, int &elevator_speed ) {
+  if( !joystick.ButtonPressed( PSB_L2 ) )
+    return;
+  const int TRESHOLD = 50;
+  int y_value = ( joystick.Analog( PSS_RY ) - 127 );
+  if ( abs( y_value ) < TRESHOLD )
+    return ;
+  if ( y_value < 0 ) {
+    elevator_speed = c_elevator_speed_up;
+  } else 
+    if ( y_value > 0 ) {
+      elevator_speed = -c_elevator_speed_down;
+    }
+}
+
+void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &elevator_speed ) {
+  if ( elevator_speed > 0 ) {
+    elevator_left->run( FORWARD );
+    elevator_right->run( FORWARD );
+    elevator_left->setSpeed( elevator_speed );
+    elevator_right->setSpeed( elevator_speed );
+  } else {
+      elevator_left->run( BACKWARD );
+      elevator_right->run( BACKWARD );
+      elevator_left->setSpeed( -elevator_speed );
+      elevator_right->setSpeed( -elevator_speed );
   }
 }

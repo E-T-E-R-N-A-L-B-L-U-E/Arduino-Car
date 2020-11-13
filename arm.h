@@ -17,6 +17,8 @@ class Arm{
 	int _breaker_start_degree = 180;
 	int _breaker_end_degree = 0;
   int _breaker_wait_degree = 90;
+  int _elevator_mode;
+  int _elevator_mode_degree[ 4 ] = { 150, 140, 140, 100 };
 public:
 	Arm();
 	Arm( Adafruit_Servo *arm, Adafruit_Servo *breaker );
@@ -25,6 +27,7 @@ public:
 	void reset();
 	void toMode( int mod );
 	void breakIt();
+  void setElevatorMode( int mod );
 	int getMode();
 };
 
