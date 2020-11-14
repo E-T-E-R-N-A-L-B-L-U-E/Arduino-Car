@@ -6,28 +6,28 @@
 #include "arm.h"
 
 
-Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-Adafruit_DCMotor *motor_left = AFMS.getMotor( 4 );
-Adafruit_DCMotor *motor_right = AFMS.getMotor( 3 );
-Adafruit_DCMotor *elevator_left = AFMS.getMotor( 2 );
-Adafruit_DCMotor *elevator_right = AFMS.getMotor( 1 );
+Adafruit_MotorShield AFMS;
+Adafruit_DCMotor *motor_left;
+Adafruit_DCMotor *motor_right;
+Adafruit_DCMotor *elevator_left;
+Adafruit_DCMotor *elevator_right;
 PS2X joystick;
 
-Adafruit_Servo *servo1 = AFMS.getServo( 7 );
-Adafruit_Servo *servo2 = AFMS.getServo( 6 );
-Arm arm = Arm( servo1, servo2 );
-ElevatorController elevator_controller( elevator_left, elevator_right, &arm );
+Adafruit_Servo *servo1;
+Adafruit_Servo *servo2;
+Arm arm;
+ElevatorController elevator_controller;
 
 const int c_speed_backward_normal = 255;
 // the normal speed moving backward, it should be lower than the forward speed
 const int c_speed_forward_normal = 255;
-const int c_elevator_speed_up = 100;
-const int c_elevator_speed_down = 90;
+const int c_elevator_speed_up = 50;
+const int c_elevator_speed_down = 30;
 // the normal speed moving forward
 const int c_speed_turn = 200;
 // the speed when the car turn left of turn right
 const double c_speed_slow_rate = 0.5;
-const double c_speed_slow_turn_rate = 0.6;
+const double c_speed_slow_turn_rate = 0.3;
 // the rate when the low speed command is given
 
 
@@ -98,8 +98,17 @@ void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevat
 
 void setup() {
   // put your setup code here, to run once:
+  AFMS = Adafruit_MotorShield();
   Serial.begin( 9600 );
   AFMS.begin(50);
+  motor_left = AFMS.getMotor( 4 );
+  motor_right = AFMS.getMotor( 3 );
+  elevator_left = AFMS.getMotor( 2 );
+  elevator_right = AFMS.getMotor( 1 );
+  servo1 = AFMS.getServo( 7 );
+  servo2 = AFMS.getServo( 6 );
+  arm = Arm( servo1, servo2 );
+  elevator_controller = ElevatorController( elevator_left, elevator_right, &arm );
   arm.reset();
   setupJoystick( joystick );
   speed_left = speed_right = 0;
@@ -112,6 +121,7 @@ void setup() {
 }
 
 void loop() {
+//  Serial.println( "enter loop" );
   joystick.read_gamepad( false, 0 );
   speed_left = speed_right = 0;
   elevator_runtime = 0;
@@ -132,6 +142,7 @@ void loop() {
   setElevatorSpeed( elevator_left, elevator_right, elevator_speed );
 //  Serial.println(arm.getMode());
   delay( 20 );
+//  Serial.println( "exit loop" );
 }
 
 
@@ -194,7 +205,7 @@ void execuateRunCommand( PS2X &joystick, int &speed_left, int &speed_right ){
 }
 
 void execuateTurnCommand( PS2X &joystick, int &speed_left, int &speed_right, bool &turn_mode ){
-  if( joystick.ButtonPressed( PSB_R2 ) ){
+  if( joystick.Button( PSB_R2 ) ){
      return;
   }
   const int TRESHOLD = 50;
@@ -263,14 +274,15 @@ void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, c
   }
 }
 void execuateReset( PS2X &joystick ){
-  if( joystick.ButtonPressed( PSB_L1 ) && joystick.ButtonPressed( PSB_L2 ) && joystick.ButtonPressed( PSB_R1 ) && joystick.ButtonPressed( PSB_R2 ) ) {
+  if( joystick.Button( PSB_L1 ) && joystick.Button( PSB_L2 ) && joystick.Button( PSB_R1 ) && joystick.Button( PSB_R2 ) ) {
     setup();
   }
 }
 
 void execuateAdjustElevator( PS2X &joystick, int &elevator_speed ) {
-  if( !joystick.ButtonPressed( PSB_L2 ) )
+  if( !joystick.Button( PSB_R2 ) )
     return;
+//  Serial.println( "enter adjust elevator" );
   const int TRESHOLD = 50;
   int y_value = ( joystick.Analog( PSS_RY ) - 127 );
   if ( abs( y_value ) < TRESHOLD )
@@ -281,9 +293,13 @@ void execuateAdjustElevator( PS2X &joystick, int &elevator_speed ) {
     if ( y_value > 0 ) {
       elevator_speed = -c_elevator_speed_down;
     }
+//  Serial.println( "exit adjust elevator" );
 }
 
 void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &elevator_speed ) {
+//  if (elevator_speed == 0 )
+//    return;
+//  Serial.println( "enter setElevatorSpeed" );
   if ( elevator_speed > 0 ) {
     elevator_left->run( FORWARD );
     elevator_right->run( FORWARD );
@@ -295,4 +311,10 @@ void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevat
       elevator_left->setSpeed( -elevator_speed );
       elevator_right->setSpeed( -elevator_speed );
   }
+//  delay( 10 );
+//  elevator_left->run( RELEASE );
+//  elevator_right->run( RELEASE );
+//  elevator_left->setSpeed( 0 );
+//  elevator_right->setSpeed( 0 );
+//  Serial.println( "exit setElevatorSpeed" );
 }

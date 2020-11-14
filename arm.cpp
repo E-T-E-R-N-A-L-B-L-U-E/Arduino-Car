@@ -26,11 +26,12 @@ void Arm::reset(){
 	(_breaker_servo)->writeServo( _breaker_wait_degree );
 	_current_mode = 0;
   _elevator_mode = 0;
+  _is_breaking = false;
 }
 
 void Arm::toMode( int mode ) {
-  Serial.println( "enter: toMode" );
-  Serial.print( "to: " ); Serial.println( mode );
+//  Serial.println( "enter: toMode" );
+//  Serial.print( "to: " ); Serial.println( mode );
 	if ( mode > _mods_cnt || mode < 0 )
 	       return;	
 //	if ( mode == _current_mode && _current_mode == 0 ) {
@@ -44,23 +45,30 @@ void Arm::toMode( int mode ) {
   }
 //	(_arm_servo)->writeServo( _mods[ mode ] );
 	_current_mode = mode;
- Serial.println( "exit: toMode" );
+// Serial.println( "exit: toMode" );
 }
 
 void Arm::setElevatorMode( int mode ) {
-  Serial.println( "enter: setElevatorMode" );
+//  Serial.println( "enter: setElevatorMode" );
   _elevator_mode = mode;
-  Serial.print( "current:" ); Serial.println( _elevator_mode );
+//  Serial.print( "current:" ); Serial.println( _elevator_mode );
   toMode( _current_mode );
-  Serial.println( "exit: setElevatorMode" );
+//  Serial.println( "exit: setElevatorMode" );
 }
 
 void Arm::breakIt(){
+  if ( _is_breaking )
+    return;
+//  Serial.println( "enter breakIt ");
+  _is_breaking = true;
   _breaker_servo->writeServo( _breaker_start_degree );
   delay( 800 );
 	(_breaker_servo)->writeServo( _breaker_end_degree );
 	delay( 800 );
 	(_breaker_servo)->writeServo( _breaker_wait_degree );
+  delay( 500 );
+  _is_breaking = false;
+//  Serial.println( "exit breakIt ");
 }
 
 int Arm::getMode(){

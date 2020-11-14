@@ -15,7 +15,7 @@ ElevatorController::ElevatorController( Adafruit_DCMotor *left, Adafruit_DCMotor
 }
 
 void ElevatorController::toStandardPosition( int pos_id) {
-  Serial.println("enter: toStandardPosition");
+//  Serial.println("enter: toStandardPosition");
 //	if ( onMoving )
 //		return;
 //   Serial.println("go");
@@ -25,15 +25,15 @@ void ElevatorController::toStandardPosition( int pos_id) {
 	if ( pos_id >= position_cnt )
 		pos_id = position_cnt - 1;
 	onMoving = false;
-  Serial.print( "to position: " );Serial.println( pos_id );
+//  Serial.print( "to position: " );Serial.println( pos_id );
 	moveTo( standard_position[ pos_id ] );
-  Serial.println("exit: toStandardPosition");
+//  Serial.println("exit: toStandardPosition");
 }
 
 void ElevatorController::moveTo( int pos ){
 //	if ( onMoving )
 //		return;
-  Serial.println( "enter: moveTo" );
+//  Serial.println( "enter: moveTo" );
 	onMoving = true;
   if ( pos > position_max ) pos = position_max;
 	if ( pos < position_min ) pos = position_min;
@@ -62,13 +62,13 @@ void ElevatorController::moveTo( int pos ){
 //	elevator_left.run( RELEASE );
 //	elevator_right.run( RELEASE );
   current_position = pos;
-  Serial.print( "at Position" ); Serial.println(  getStandardPosition()  );
+//  Serial.print( "at Position" ); Serial.println(  getStandardPosition()  );
 	onMoving = false;
-  Serial.println( "exit: moveTo" );
+//  Serial.println( "exit: moveTo" );
 }
 
 void ElevatorController::runUpward( const int &runtime ){
-  Serial.println( "enter: runUpward" );
+//  Serial.println( "enter: runUpward" );
 //	if ( onMoving ) 
 //		return;
 	if ( runtime <= 0 ) {
@@ -89,16 +89,16 @@ void ElevatorController::runUpward( const int &runtime ){
 //	elevator_right.run( RELEASE );
 	run( goal - current_position, 1, 1 );
 	current_position = goal;
-  Serial.print( "at Position" ); Serial.println( getStandardPosition() );
-  Serial.print( "current Position:" ); Serial.println( current_position );
+//  Serial.print( "at Position" ); Serial.println( getStandardPosition() );
+//  Serial.print( "current Position:" ); Serial.println( current_position );
 	onMoving = false;
   _arm->setElevatorMode( getStandardPosition() );
-  Serial.println( "exit: runUpward" );
+//  Serial.println( "exit: runUpward" );
 }
 
 void ElevatorController::runDownward( const int &runtime ) {
   int real_runtime = round( to_down_rate * runtime );
-  Serial.println( "enter runDownward" );
+//  Serial.println( "enter runDownward" );
 //	if ( onMoving )
 //		return 0;
 	if ( real_runtime <= 0 ) {
@@ -119,11 +119,11 @@ void ElevatorController::runDownward( const int &runtime ) {
 //	elevator_right.run( RELEASE );
 	run( current_position - goal, -1, 1 );
 	current_position = current_position - runtime;
-  Serial.print( "at Position" ); Serial.println( getStandardPosition() );
-  Serial.print( "current Position:" ); Serial.println( current_position );
+//  Serial.print( "at Position" ); Serial.println( getStandardPosition() );
+//  Serial.print( "current Position:" ); Serial.println( current_position );
 	onMoving = false;
   _arm->setElevatorMode( getStandardPosition() );
-  Serial.println( "exit runDownward");
+//  Serial.println( "exit runDownward");
 }
 
 // this function should only be used privately

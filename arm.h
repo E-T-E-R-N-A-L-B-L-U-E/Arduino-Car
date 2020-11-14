@@ -19,6 +19,8 @@ class Arm{
   int _breaker_wait_degree = 90;
   int _elevator_mode;
   int _elevator_mode_degree[ 4 ] = { 150, 140, 140, 100 };
+
+  bool _is_breaking;
 public:
 	Arm();
 	Arm( Adafruit_Servo *arm, Adafruit_Servo *breaker );
