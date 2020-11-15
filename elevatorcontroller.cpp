@@ -14,6 +14,10 @@ ElevatorController::ElevatorController( Adafruit_DCMotor *left, Adafruit_DCMotor
 	onMoving = false;
 }
 
+ElevatorController::~ElevatorController(){
+  
+}
+
 void ElevatorController::toStandardPosition( int pos_id) {
 //  Serial.println("enter: toStandardPosition");
 //	if ( onMoving )

@@ -35,6 +35,7 @@ class ElevatorController {
 public:
 	ElevatorController( );
 	ElevatorController( Adafruit_DCMotor *left, Adafruit_DCMotor *right, Arm *arm );
+  ~ElevatorController();
 
 
 	void toStandardPosition( int pos_id );

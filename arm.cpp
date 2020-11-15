@@ -15,6 +15,10 @@ Arm::Arm( Adafruit_Servo *arm, Adafruit_Servo *breaker ) {
 //	reset();
 }
 
+Arm::~Arm(){
+  
+}
+
 
 void Arm::setServo( Adafruit_Servo *arm, Adafruit_Servo *breaker ){
   _arm_servo = arm;
@@ -22,8 +26,9 @@ void Arm::setServo( Adafruit_Servo *arm, Adafruit_Servo *breaker ){
 }
 
 void Arm::reset(){
+  _break_mode = 0;
 	(_arm_servo)->writeServo( _mods[ 0 ] );
-	(_breaker_servo)->writeServo( _breaker_wait_degree );
+	(_breaker_servo)->writeServo( _breaker_wait_degree[ _break_mode ] );
 	_current_mode = 0;
   _elevator_mode = 0;
   _is_breaking = false;
@@ -62,13 +67,22 @@ void Arm::breakIt(){
 //  Serial.println( "enter breakIt ");
   _is_breaking = true;
   _breaker_servo->writeServo( _breaker_start_degree );
+//  while ( _breaker_servo->readDegrees() != _breaker_start_degree );
   delay( 800 );
 	(_breaker_servo)->writeServo( _breaker_end_degree );
 	delay( 800 );
-	(_breaker_servo)->writeServo( _breaker_wait_degree );
+//  while ( _breaker_servo->readDegrees() != _breaker_end_degree );
+	(_breaker_servo)->writeServo( _breaker_wait_degree[ _break_mode ] );
   delay( 500 );
+//  while ( _breaker_servo->readDegrees() != _breaker_wait_degree );
   _is_breaking = false;
 //  Serial.println( "exit breakIt ");
+}
+
+void Arm::changeBreakMode(){
+  _break_mode = ( _break_mode + 1 ) % 3;
+  (_breaker_servo)->writeServo( _breaker_wait_degree[ _break_mode ] );
+  delay( 300 );
 }
 
 int Arm::getMode(){

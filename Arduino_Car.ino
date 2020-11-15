@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <Metro.h>
 #include "PS2X_lib.h"
 #include "Adafruit_MotorShield.h"
 #include "utility/Adafruit_MS_PWMServoDriver.h"
@@ -15,8 +16,10 @@ PS2X joystick;
 
 Adafruit_Servo *servo1;
 Adafruit_Servo *servo2;
-Arm arm;
-ElevatorController elevator_controller;
+Arm *arm;
+ElevatorController *elevator_controller;
+
+Metro elevator_thread( 20 ), motor_thread( 19 ), break_thread( 31 );
 
 const int c_speed_backward_normal = 255;
 // the normal speed moving backward, it should be lower than the forward speed
@@ -26,8 +29,8 @@ const int c_elevator_speed_down = 30;
 // the normal speed moving forward
 const int c_speed_turn = 200;
 // the speed when the car turn left of turn right
-const double c_speed_slow_rate = 0.5;
-const double c_speed_slow_turn_rate = 0.3;
+const double c_speed_slow_rate = 0.2;
+const double c_speed_slow_turn_rate = 0.15;
 // the rate when the low speed command is given
 
 
@@ -87,11 +90,12 @@ void execuateElevatorMove( PS2X &joystick, int &direct );
  */
 void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, const int &speed_left, const int &speed_right );
 void runElevator( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &direct, const int &elevator_speed, const int &runtime );
-void execuateChangeArmMode( PS2X &joystick, Arm &arm );
-void execuateBreak( PS2X &joystick, Arm &arm );
+void execuateChangeArmMode( PS2X &joystick, Arm *arm );
+void execuateBreak( PS2X &joystick, Arm *arm );
 void execuateReset( PS2X &joystick );
-void execuateAdjustElevator( PS2X &joystick, int &elevator_speed );
+void execuateAdjustElevator( PS2X &joystick, int *elevator_speed );
 void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevator_right, const int &elevator_speed );
+void execuateChangeBreakMode( PS2X &joystick, Arm *arm );
 
 
 
@@ -101,15 +105,23 @@ void setup() {
   AFMS = Adafruit_MotorShield();
   Serial.begin( 9600 );
   AFMS.begin(50);
+  AFMS.resetServos();
+//  if ( servo1 != NULL ) delete servo1;
+//  if ( servo2 != NULL ) delete servo2;
+//  if ( arm != NULL ) delete arm;
+//  if ( elevator_controller != NULL ) delete elevator_controller;
+  elevator_thread.reset();
+  motor_thread.reset();
+  break_thread.reset();
   motor_left = AFMS.getMotor( 4 );
   motor_right = AFMS.getMotor( 3 );
   elevator_left = AFMS.getMotor( 2 );
   elevator_right = AFMS.getMotor( 1 );
   servo1 = AFMS.getServo( 7 );
-  servo2 = AFMS.getServo( 6 );
-  arm = Arm( servo1, servo2 );
-  elevator_controller = ElevatorController( elevator_left, elevator_right, &arm );
-  arm.reset();
+  servo2 = AFMS.getServo( 3 );
+  arm = new Arm( servo1, servo2 );
+  elevator_controller = new ElevatorController( elevator_left, elevator_right, arm );
+  arm->reset();
   setupJoystick( joystick );
   speed_left = speed_right = 0;
   turn_mode = false;
@@ -123,25 +135,30 @@ void setup() {
 void loop() {
 //  Serial.println( "enter loop" );
   joystick.read_gamepad( false, 0 );
-  speed_left = speed_right = 0;
-  elevator_runtime = 0;
-  elevator_speed = 0;
-  turn_mode = false;
-
   execuateReset( joystick );
-
-  execuateRunCommand( joystick, speed_left, speed_right );
-  execuateTurnCommand( joystick, speed_left, speed_right, turn_mode );
-  execuateSlowMode( joystick, speed_left, speed_right, turn_mode );
-  execuateElevatorMove( joystick, elevator_direction );
-  execuateChangeArmMode( joystick, arm );
-  execuateBreak( joystick, arm );
-  execuateAdjustElevator( joystick, elevator_speed );
-
-  setCarSpeed( motor_left, motor_right, speed_left, speed_right );
-  setElevatorSpeed( elevator_left, elevator_right, elevator_speed );
-//  Serial.println(arm.getMode());
+  if ( elevator_thread.check() ) {
+    elevator_runtime = 0;
+    elevator_speed = 0;
+    execuateElevatorMove( joystick, elevator_direction );
+    execuateChangeArmMode( joystick, arm );
+    execuateAdjustElevator( joystick, elevator_speed );
+    setElevatorSpeed( elevator_left, elevator_right, elevator_speed );
+  }
+  if ( break_thread.check() ) {
+    execuateChangeBreakMode( joystick, arm );
+    execuateBreak( joystick, arm );
+  }
+  if ( motor_thread.check() ) {
+    speed_left = speed_right = 0;
+    turn_mode = false;
+    execuateRunCommand( joystick, speed_left, speed_right );
+    execuateTurnCommand( joystick, speed_left, speed_right, turn_mode );
+    execuateSlowMode( joystick, speed_left, speed_right, turn_mode );
+    setCarSpeed( motor_left, motor_right, speed_left, speed_right );
+  }
   delay( 20 );
+//  Serial.println(arm.getMode());
+  
 //  Serial.println( "exit loop" );
 }
 
@@ -179,10 +196,11 @@ void setupMotor( Adafruit_DCMotor *m1, int s1, Adafruit_DCMotor *m2, int s2, Ada
 
 void execuateRunCommand( PS2X &joystick, int &speed_left, int &speed_right ){
 #define speedFunction( value ) ( 1.0 - pow( 2.718, 1.0 * value / 32 ) / max_func )
-  const int Y_TRESHOLD = 20;
-  const int X_TRESHOLD = 5;
+  const int Y_TRESHOLD = 70;
+  const int X_TRESHOLD = 50;
   const double max_func = pow( 2.718, 4.0 );
   int y_value = -( joystick.Analog( PSS_LY ) - 127 );
+//  Serial.println( y_value );
   int x_value = joystick.Analog( PSS_LX );
   if ( abs( y_value ) + abs( x_value - 127 ) < Y_TRESHOLD )
     return;
@@ -235,47 +253,58 @@ void execuateSlowMode( PS2X &joystick, int &speed_left, int &speed_right, bool t
 void execuateElevatorMove( PS2X &joystick, int &direct ){
   if ( joystick.Button( PSB_BLUE ) && joystick.NewButtonState( PSB_BLUE ) ){
     direct = 1;
-    elevator_controller.toStandardPosition( elevator_controller.getStandardPosition() + 1 );
+    elevator_controller->toStandardPosition( elevator_controller->getStandardPosition() + 1 );
   } else {
     if (joystick.Button( PSB_GREEN ) && joystick.NewButtonState( PSB_GREEN ) ){
       direct = -1;
-      elevator_controller.toStandardPosition( elevator_controller.getStandardPosition() - 1 );
+      elevator_controller->toStandardPosition( elevator_controller->getStandardPosition() - 1 );
     }
   }
 }
 
-void execuateChangeArmMode( PS2X &joystick, Arm &arm ) {
+void execuateChangeArmMode( PS2X &joystick, Arm *arm ) {
   if ( joystick.Button( PSB_PINK ) && joystick.NewButtonState( PSB_PINK ) ){
-    arm.toMode( !arm.getMode() );
+    arm->toMode( !arm->getMode() );
   }
 }
 
-void execuateBreak( PS2X &joystick, Arm &arm ) {
-  if ( joystick.Button( PSB_RED ) && joystick.NewButtonState( PSB_RED ) ){
-    arm.breakIt();
+void execuateBreak( PS2X &joystick, Arm *arm ) {
+  if ( joystick.ButtonPressed( PSB_RED ) && joystick.NewButtonState( PSB_RED ) ){
+    arm->breakIt();
   }
 }
 
 void setCarSpeed( Adafruit_DCMotor *motor_left, Adafruit_DCMotor *motor_right, const int &speed_left, const int &speed_right ) {
-  if( speed_left >= 0 ) {
+  if( speed_left == 0 ) {
+    motor_left->run( BRAKE );
+  }
+  if( speed_right == 0 ) {
+    motor_right->run( BRAKE );
+  }
+  if( speed_left > 0 ) {
     motor_left->run( FORWARD );
     motor_left->setSpeed( speed_left );
   } else {
-    motor_left->run( BACKWARD );
-    motor_left->setSpeed( -speed_left );
+    if( speed_left < 0 ) {
+      motor_left->run( BACKWARD );
+      motor_left->setSpeed( -speed_left ); 
+    }
   }
 
-  if( speed_right >= 0 ) {
+  if( speed_right > 0 ) {
     motor_right->run( FORWARD );
     motor_right->setSpeed( speed_right );
   } else {
-    motor_right->run( BACKWARD );
-    motor_right->setSpeed( -speed_right );
+    if( speed_right < 0 ){
+      motor_right->run( BACKWARD );
+      motor_right->setSpeed( -speed_right );
+    }
   }
 }
 void execuateReset( PS2X &joystick ){
   if( joystick.Button( PSB_L1 ) && joystick.Button( PSB_L2 ) && joystick.Button( PSB_R1 ) && joystick.Button( PSB_R2 ) ) {
     setup();
+    servo2->writeServo( 90 );
   }
 }
 
@@ -317,4 +346,12 @@ void setElevatorSpeed( Adafruit_DCMotor *elevator_left, Adafruit_DCMotor *elevat
 //  elevator_left->setSpeed( 0 );
 //  elevator_right->setSpeed( 0 );
 //  Serial.println( "exit setElevatorSpeed" );
+}
+
+void execuateChangeBreakMode( PS2X &joystick, Arm *arm ) {
+  if ( joystick.Button( PSB_L1 ) && joystick.Button( PSB_L2 ) && joystick.Button( PSB_R1 ) && joystick.Button( PSB_R2 ) ) 
+    return;
+  if ( joystick.ButtonPressed( PSB_R1 ) ){
+    arm->changeBreakMode();
+  }
 }
